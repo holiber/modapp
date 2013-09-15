@@ -1,0 +1,41 @@
+.notifier {
+	position: fixed;
+	top: 10px;
+	width: 100%;
+	z-index: 110;
+}
+
+.notifier-track {
+	text-align: center;
+}
+
+.notifier-item {
+	position: relative;
+	margin: 0 auto;
+	color: #5d73a8;
+	background-color: #edf2fc;
+	border: 1px solid #bec9e4;
+	border-radius: 3px;
+	box-shadow: #ccc 0px 1px 2px;
+	padding: 2px 5px;
+}
+
+.notifier .notifier-item {
+	width: 50%;
+}
+
+.notifier-item.error {
+	border-color: #edc0c0;
+	background: #ffeaea;
+	color: #ff4444;
+	box-shadow: #edc0c0 0px 1px 5px;
+}
+
+.notifier-item .notifier-close {
+	position: absolute;
+	cursor: pointer;
+	right: 5px;
+	top: 4px;
+	font-size:1px;line-height:1px;background:transparent none center center no-repeat;width:15px;height:15px;display:inline-block;vertical-align:top;
+	background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAGlJREFUeNpibmpqeuHo6Ph63759FxsaGhiYmZnjgfydLAwMDOVA3Nnc3PyDAQI6QWKM////ZwAKRgA506ASWbW1tSuYGHAAZpCZQLoXiHOAeCsQTzx06NBrFpiZQO0rQSqBxnKAxAACDACDwiItCi93kwAAAABJRU5ErkJggg==");
+}
