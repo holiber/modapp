@@ -1,0 +1,10 @@
+{
+  "name": "modapp",
+  "version": "0.1.0",
+  "ignore": [
+      "**/.*"
+  ],
+  "dependencies": {
+    "jquery": ">= 1.9.0"
+  }
+}
