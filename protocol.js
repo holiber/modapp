@@ -1,7 +1,8 @@
 define(['./mixins/events'], function (eventMixin) {
 
 	var DEFAULT_OPTIONS = {
-		transport: 'xhr'
+		transport: 'xhr',
+		delay: 0
 	};
 
 	var DEFAULT_XHR_OPTIONS = {
@@ -27,7 +28,11 @@ define(['./mixins/events'], function (eventMixin) {
 
 			var fnOnDone = function (response, error, userData) {
 				var eventData = {name: params.name, response: response, error: error, request: params, userData: userData}
-				this.emit('server/message', eventData, 'global');
+				if (params.delay) {
+					setTimeout(this.emit.bind(this, 'server/message', eventData, 'global'), params.delay);
+				} else {
+					this.emit('server/message', eventData, 'global');
+				}
 				callback && callback(eventData);
 			}.bind(this);
 

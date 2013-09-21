@@ -23,7 +23,7 @@ define(['../../app'], function (App) {
 	}
 
 	var DEFAULT_ITEM_TPL =  function (data) {
-		return '<div class="notifier-item ' + data.item.type + '" rel="' + data.item.id + '">' +
+		return '<div class="notifier-item alert alert-' + data.item.type + '" rel="' + data.item.id + '">' +
 			'<div class="text">' +
 				data.item.text +
 			'</div>' +
@@ -38,6 +38,12 @@ define(['../../app'], function (App) {
 		 * @param {Number} max
 		 */
 		init: function (tpl, max) {
+			//swap args
+			if (arguments.length = 1) {
+				max = tpl;
+				tpl = undefined;
+			}
+
 			tpl = tpl || {};
 			this.tpl = {layout: tpl.layout || DEFAUT_LAYOUT_TPL, item: tpl.item || DEFAULT_ITEM_TPL};
 			this.$el = null;
@@ -56,6 +62,12 @@ define(['../../app'], function (App) {
 		push: function (type, text, options) {
 			switch (arguments.length) {
 				case 1:
+					text = type;
+					type = undefined;
+				break;
+				case 2:
+					if (typeof(text) == 'string') break;
+					options = text;
 					text = type;
 					type = undefined;
 				break;

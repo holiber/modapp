@@ -2,9 +2,10 @@ define([
 	'./utils',
 	'./module',
 	'./router',
-	'./protocol'
+	'./protocol',
+	'./activedata'
 ],
-function (utils, Module, Router, Protocol) {
+function (utils, Module, Router, Protocol, ActiveData) {
 	
 	var App = window.App = Module.extend({
 
@@ -14,6 +15,7 @@ function (utils, Module, Router, Protocol) {
 			this._super();
 			this.app = this;
 			this.pageDepend = true;
+			this.activeFlag = true;
 			this.router = new App.Router(defaultPage);
 			this.add('router', this.router);
 		},
@@ -62,6 +64,7 @@ function (utils, Module, Router, Protocol) {
 		Module: Module,
 		Router: Router,
 		Protocol: Protocol,
+		ActiveData: ActiveData,
 
 		nextId: function () {
 			return ++this.id;

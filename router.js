@@ -32,7 +32,17 @@ define(['./mixins/events'], function (eventMixin) {
 		route: function (page) {
 
 			var oldHash = this.hash;
-			this.hash = window.location.hash;
+			var hash = window.location.hash;
+			if (hash == '#..') {
+				var hashItems = oldHash.split('/');
+				if (hashItems[hashItems.length] == '/') hashItems.splice(hashItems.length - 1, 1);
+				hashItems && hashItems.splice(hashItems.length - 1, 1);
+				hash = hashItems.join('/');
+				window.location.hash = hash;
+				return;
+			}
+
+			this.hash = hash;
 
 			if (page && typeof(page) == 'string') {
 				this.emit('route', page);

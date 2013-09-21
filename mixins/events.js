@@ -7,7 +7,17 @@ define(function () {
 
 	return {
 
-		emit: function (name, data, dirrection) {
+		/**
+		 * emit (name[,data [,dirrection] [,callback]])
+		 * @param {String} name
+		 * @param {Object} [data]
+		 * @param {String} [dirrection='all']
+		 * @param {Function} [callback]
+		 */
+		emit: function (name, data, dirrection, callback) {
+
+			//swap arguments
+			if (dirrection && $.isFunction(dirrection)) callback = dirrection;
 			dirrection = dirrection || 'all';
 
 			var e = {name: name, data: data, sender: this, direction: null, way: 'children', isGlobal: false}
@@ -38,6 +48,7 @@ define(function () {
 				}
 
 				fnSendEvent(topParent);
+				callback && setTimeout(callback);
 			}
 		},
 

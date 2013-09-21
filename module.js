@@ -16,16 +16,21 @@ define(['./mixins/events'], function (eventMixin) {
 			this.$el = null;
 			this.$container = null;
 			this.page = null;
+			this.pageTpl = null;
 			this.pagePlace = null;
+			this.pageRoute = null;
 			this.helper = {};
 			this.deep = 1;
 			this.pageDepend = false;
 			this.autoLoad = true;
+			this.autoPlace = true;
 			this.m = {};//activemarks
 			this.activeMarkValue = 'active';
 			this.activeMark = App.utils.toScore(this.name) + '-mark';
 			this.loadState = LSTATE_NONE;
 			this.saveState = 'none';
+			this.activeFlag = false;
+			this.allModulesPlaced = true;
 			if (!this.name) this.name = null;
 			if (!this.defaultPage) this.defaultPage = null;
 			this.setPage();
@@ -50,8 +55,9 @@ define(['./mixins/events'], function (eventMixin) {
 			if (module instanceof App.Module) module.setApp(this.app);
 			this.m[name] = '';
 			module._onReady && module._onReady();
+			this.allModulesPlaced = false;
 			this.emit('moduleAdded', module);
-			return true;
+			return module;
 		},
 
 
@@ -72,7 +78,9 @@ define(['./mixins/events'], function (eventMixin) {
 			}
 		},
 
-		render: function ($container) {
+		render: function ($container) {if (this.name == 'items') console.log('items render');
+
+			if (!this.isActive()) return false;
 
 			if (typeof($container) == 'string') {
 				var $part = $(this.tpl(this)).find('.' + $container);
@@ -89,6 +97,7 @@ define(['./mixins/events'], function (eventMixin) {
 			if (!this.tpl) return false;
 			if (!this.$container || !this.$container.length) return false;
 			this.$el = $(this.tpl(this));
+			if (!this.allModulesPlaced) this.placeModules();
 			this.$container.html(this.$el);
 			return true;
 		},
@@ -102,14 +111,20 @@ define(['./mixins/events'], function (eventMixin) {
 		},
 
 		switchPage: function (page) {
-			if (!this.get(page)) page = 'notfound';
 			var oldPlace = this.pagePlace;
 			this.setPage(page);
 			if (!this.$el || !this.$el.length) return;
 			this.$el.find('.' + oldPlace).removeClass(oldPlace).addClass(this.pagePlace);
 			this.$el.find('.' + this.activeMark).removeClass(this.activeMarkValue);
-			this.$el.find('.' + this.activeMark + '.m-' + App.utils.toScore(page)).addClass(this.activeMarkValue);
+			this.$el.find('.' + this.activeMark + '.m-' + App.utils.toScore(this.page)).addClass(this.activeMarkValue);
 			this.placeModules();
+		},
+
+		isActive: function () {
+			if (!this.activeFlag) return false;
+			if (!this.parent) return true;
+			if (!this.parent.activeFlag) return false;
+			return this.parent.isActive();
 		},
 
 		/**
@@ -119,9 +134,12 @@ define(['./mixins/events'], function (eventMixin) {
 		 */
 		place: function ($container, subPage) {
 			this.setPage(subPage);
+			this.activeFlag = true;
 			this.render($container);
+			$container.data('module', this);
 			this.placeModules();
 			if ((this.loadState == LSTATE_NONE || this.loadState == LSTATE_ERROR) && this.autoLoad && this.load) this.load();
+			this.off();
 			this._attachEvents();
 			setTimeout(this._onPlace.bind(this));
 			this.emit('place');
@@ -134,16 +152,21 @@ define(['./mixins/events'], function (eventMixin) {
 		placeModules: function () {
 			if (!this.$el) return false;
 			var subPage = this.app.router.getPage(this.getPageDeep() + 1);
+
 			for (var moduleName in this.children) {
 				var module = this.children[moduleName];
 				if (!(module instanceof App.Module)) continue;
-				if (!module.name) continue;
+				if (!module.name || !this.autoPlace) continue;
 				var selector = '.' + App.utils.toScore(moduleName) + '-place';
 				var $container = this.$el.find(selector);
+				if (!$container.length) continue;
 				var $internalEl = $container.find(':first');
 				if ($internalEl.hasClass(App.utils.toScore(moduleName))) continue;
-				if ($container && $container.length) module.place($container, (module.page || module.defaultPage) ? subPage : null);
+				var oldModule = $container.data('module');
+				if (oldModule) oldModule.activeFlag = false;
+				module.place($container, (module.page || module.defaultPage) ? subPage : null);
 			}
+			this.allModulesPlaced = true;
 			return true;
 		},
 
@@ -152,12 +175,29 @@ define(['./mixins/events'], function (eventMixin) {
 		},
 
 		setPage: function (page) {
-			this.page = page || this.defaultPage;
+			page = page || this.defaultPage;
+			var route = page;
+			if (!this.get(page)) {
+				route = page;
+				page = this.getPageByRoute(route);
+			}
+
+			this.page = page;
+			this.pageRoute = route;
 			this.pagePlace = this.getPagePlace();
 			for (var key in this.m) {
 				this.m[key] = this.activeMark + ' m-' + App.utils.toScore(key);
 				if (key == this.page) this.m[key] += ' ' + this.activeMarkValue;
 			}
+			var subModule = this.get(this.page);
+			if (subModule) {
+				subModule.setRoute(route);
+				setTimeout(subModule._onActivate.bind(subModule));
+			}
+		},
+
+		setRoute: function (route) {
+			this.route = route;
 		},
 
 		getDeep: function () {
@@ -167,12 +207,43 @@ define(['./mixins/events'], function (eventMixin) {
 
 		getPageDeep: function () {
 			var result = Number(!!this.page);
+			if (this.defaultPage) result = 1;
 			if (this.parent) result += this.parent.getPageDeep();
 			return result;
 		},
 
 		getComputedPage: function () {
 			return this.page || (this.parent && this.parent.getComputedPage());
+		},
+
+		getPageByRoute: function (page) {
+			var moduleName = null;
+			for (var childName in this.children) {
+				var child = this.children[childName];
+				if (!(child instanceof App.Module)) continue;
+				if (child.name != page) continue;
+				moduleName = child.name;
+				break;
+			}
+			if (moduleName) return moduleName;
+			for (var childName in this.children) {
+				var child = this.children[childName];
+				if (!(child instanceof App.Module)) continue;
+				if (!child.pageTpl || !child.pageTpl.test(page)) continue;
+				moduleName = child.name;
+				break;
+			}
+			return moduleName;
+		},
+
+		on: function (type, selector, fn) {
+			var args = Array.prototype.slice.call(arguments, 0);
+			args[0] += '.module';
+			this.$container.on.apply(this.$container, args);
+		},
+
+		off: function () {
+			this.$container.off('.module');
 		},
 
 		_attachEvents: function () {
@@ -183,6 +254,10 @@ define(['./mixins/events'], function (eventMixin) {
 		},
 
 		_onPlace: function () {
+
+		},
+
+		_onActivate: function () {
 
 		},
 
