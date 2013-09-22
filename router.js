@@ -30,7 +30,6 @@ define(['./mixins/events'], function (eventMixin) {
 		},
 
 		route: function (page) {
-
 			var oldHash = this.hash;
 			var hash = window.location.hash;
 			if (hash == '#..') {
@@ -52,7 +51,7 @@ define(['./mixins/events'], function (eventMixin) {
 
 			var changeDeep = Router.getChangeDeep(this.hash, oldHash);
 			page = this.getPage(changeDeep);
-			var eventData = {page: page, changeDeep: changeDeep, router: this, old: oldHash};
+			var eventData = {router: this, old: oldHash};
 			this.emit('route', eventData, 'global');
 		},
 

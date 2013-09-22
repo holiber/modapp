@@ -1,10 +1,13 @@
 {
   "name": "modapp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "ignore": [
       "**/.*"
   ],
   "dependencies": {
-    "jquery": ">= 1.9.0"
+    "jquery": ">= 1.9.0",
+    "hbs": ">=0.4.0",
+    "requirejs": ">=2.1.8",
+    "sass-bootstrap": ">=2.3.2"
   }
 }

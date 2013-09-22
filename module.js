@@ -78,7 +78,7 @@ define(['./mixins/events'], function (eventMixin) {
 			}
 		},
 
-		render: function ($container) {if (this.name == 'items') console.log('items render');
+		render: function ($container) {
 
 			if (!this.isActive()) return false;
 
