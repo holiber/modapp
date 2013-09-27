@@ -20,17 +20,34 @@ function (utils, Module, Router, Protocol, ActiveData) {
 			this.add('router', this.router);
 		},
 
-		getPage: function (deep) {
-			return this.getPagePath().split('/')[deep - 1];
-//			var module = this;
-//			while (module.getDeep() < deep) {
-//				if (!module.children[module.page]) return false;
-//				module = module.children[module.page]
-//			}
-//			return module.name;
+		start: function ($container) {
+			this.$container = $container;
+			if (!this.$container || !this.$container.length) {
+				throw 'application container not found';
+			};
+			this.setPage(this.router.getPage());
+			this.render();
 		},
 
-		getPagePath: function () {
+		render: function ($container) {
+			if ($container) this.$container = $container;
+			if (!this.$container || !this.$container.length) return;
+			this.$el = $(this.tpl(this));
+			this.placeModules();
+			this.emit('render');
+			this.$container.html(this.$el);
+			this.emit('app/ready');
+		},
+
+		getPage: function (deep) {
+			return this.getPagePath().split('/')[deep - 1];
+		},
+		/**
+		 *
+		 * @param {Boolean} [asRoute = false]
+		 * @returns {string}
+		 */
+		getPagePath: function (asRoute) {
 			var module = this;
 			var path = '';
 			if (!module.page) {
@@ -52,11 +69,26 @@ function (utils, Module, Router, Protocol, ActiveData) {
 					}
 					break;
 				}
-				path += module.page + '/';
+				path += asRoute ? module.pageRoute : module.page;
+				path += '/';
 				module = module.children[module.page];
 			}
 			path = path.substr(0, path.length - 1);
 			return path;
+		},
+
+		getRoutePath: function () {
+			return this.getPagePath(true);
+		},
+
+		switchFullscreen: function () {
+			this.$el.find('.layout').hide();
+			this.$el.find('.fullscreen').show();
+		},
+
+		switchLayout: function () {
+			this.$el.find('.fullscreen').hide();
+			this.$el.find('.layout').show();
 		}
 
 	}, {

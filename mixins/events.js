@@ -4,6 +4,7 @@ define(function () {
 	var DIRRECTION_PARENT = 'parent';
 	var DIRRECTION_CHILDREN = 'children';
 	var DIRRECTION_GLOBAL = 'global';
+	var DIRRECTION_ROOT = 'root';
 
 	return {
 
@@ -11,32 +12,44 @@ define(function () {
 		 * emit (name[,data [,dirrection] [,callback]])
 		 * @param {String} name
 		 * @param {Object} [data]
-		 * @param {String} [dirrection='all']
+		 * @param {String} [dirrection='global']
 		 * @param {Function} [callback]
 		 */
 		emit: function (name, data, dirrection, callback) {
 
 			//swap arguments
 			if (dirrection && $.isFunction(dirrection)) callback = dirrection;
-			dirrection = dirrection || 'all';
+			dirrection = dirrection || 'global';
 
-			var e = {name: name, data: data, sender: this, direction: null, way: 'children', isGlobal: false}
+			var e = {name: name, data: data, sender: this, direction: dirrection, way: 'children', isGlobal: false}
 
 			if ((dirrection == DIRRECTION_ALL || dirrection == DIRRECTION_CHILDREN) && this.children) {
 				for (var itemName in this.children) {
 					var item = this.children[itemName];
 					item._on(e);
 				}
+				return;
 			}
 
 			if ((dirrection == DIRRECTION_ALL || dirrection == DIRRECTION_PARENT) && this.parent) {
 				e = $.extend({}, e, {way: 'parent'});
 				this.parent._on(e);
+				return
+			}
+
+			var root = this;
+			while (root.parent) root = root.parent;
+
+			if (dirrection == DIRRECTION_ROOT) {
+				root._on(e);
+				for (var itemName in root.children) {
+					var item = root.children[itemName];
+					item._on(e);
+				}
+				return;
 			}
 
 			if (dirrection == DIRRECTION_GLOBAL) {
-				var topParent = this;
-				while (topParent.parent) topParent = topParent.parent;
 
 				e = $.extend({}, e, {way: 'children', isGlobal: true});
 
@@ -47,7 +60,7 @@ define(function () {
 					}
 				}
 
-				fnSendEvent(topParent);
+				fnSendEvent(root);
 				callback && setTimeout(callback);
 			}
 		},

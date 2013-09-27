@@ -26,7 +26,7 @@ define(['./mixins/events'], function (eventMixin) {
 			this.autoPlace = true;
 			this.m = {};//activemarks
 			this.activeMarkValue = 'active';
-			this.activeMark = App.utils.toScore(this.name) + '-mark';
+			this.activeMark = null;
 			this.loadState = LSTATE_NONE;
 			this.saveState = 'none';
 			this.activeFlag = false;
@@ -54,6 +54,7 @@ define(['./mixins/events'], function (eventMixin) {
 			module.parent = this;
 			if (module instanceof App.Module) module.setApp(this.app);
 			this.m[name] = '';
+			this._updateActiveMarks();
 			module._onReady && module._onReady();
 			this.allModulesPlaced = false;
 			this.emit('moduleAdded', module);
@@ -97,7 +98,8 @@ define(['./mixins/events'], function (eventMixin) {
 			if (!this.tpl) return false;
 			if (!this.$container || !this.$container.length) return false;
 			this.$el = $(this.tpl(this));
-			if (!this.allModulesPlaced) this.placeModules();
+			//if (!this.allModulesPlaced) this.placeModules();
+			this.placeModules();
 			this.$container.html(this.$el);
 			return true;
 		},
@@ -111,10 +113,10 @@ define(['./mixins/events'], function (eventMixin) {
 		},
 
 		switchPage: function (page) {
-			var oldPlace = this.pagePlace;
+			var oldPlaceClass = this.pagePlace;
 			this.setPage(page);
 			if (!this.$el || !this.$el.length) return;
-			this.$el.find('.' + oldPlace).removeClass(oldPlace).addClass(this.pagePlace);
+			this.$el.find('.' + oldPlaceClass).removeClass(oldPlaceClass).addClass(this.pagePlace);
 			this.$el.find('.' + this.activeMark).removeClass(this.activeMarkValue);
 			this.$el.find('.' + this.activeMark + '.m-' + App.utils.toScore(this.page)).addClass(this.activeMarkValue);
 			this.placeModules();
@@ -137,7 +139,7 @@ define(['./mixins/events'], function (eventMixin) {
 			this.activeFlag = true;
 			this.render($container);
 			$container.data('module', this);
-			this.placeModules();
+			//this.placeModules();
 			if ((this.loadState == LSTATE_NONE || this.loadState == LSTATE_ERROR) && this.autoLoad && this.load) this.load();
 			this.off();
 			this._attachEvents();
@@ -156,15 +158,17 @@ define(['./mixins/events'], function (eventMixin) {
 			for (var moduleName in this.children) {
 				var module = this.children[moduleName];
 				if (!(module instanceof App.Module)) continue;
-				if (!module.name || !this.autoPlace) continue;
+				if (!module.name) continue;
+				var moduleSubPage = (module.page || module.defaultPage) ? subPage : null;
+				if (!this.autoPlace) continue;
 				var selector = '.' + App.utils.toScore(moduleName) + '-place';
 				var $container = this.$el.find(selector);
 				if (!$container.length) continue;
 				var $internalEl = $container.find(':first');
-				if ($internalEl.hasClass(App.utils.toScore(moduleName))) continue;
+				if ($internalEl.hasClass(App.utils.toScore(moduleName + '-module'))) continue;
 				var oldModule = $container.data('module');
 				if (oldModule) oldModule.activeFlag = false;
-				module.place($container, (module.page || module.defaultPage) ? subPage : null);
+				module.place($container, moduleSubPage);
 			}
 			this.allModulesPlaced = true;
 			return true;
@@ -179,20 +183,19 @@ define(['./mixins/events'], function (eventMixin) {
 			var route = page;
 			if (!this.get(page)) {
 				route = page;
-				page = this.getPageByRoute(route);
+				page = this.getPageByRoute(route) || page;
 			}
 
 			this.page = page;
 			this.pageRoute = route;
 			this.pagePlace = this.getPagePlace();
-			for (var key in this.m) {
-				this.m[key] = this.activeMark + ' m-' + App.utils.toScore(key);
-				if (key == this.page) this.m[key] += ' ' + this.activeMarkValue;
-			}
+			this._updateActiveMarks();
 			var subModule = this.get(this.page);
 			if (subModule) {
 				subModule.setRoute(route);
-				setTimeout(subModule._onActivate.bind(subModule));
+				var subPage = this.app.router.getPage(this.getPageDeep() + 1);
+				subModule._onActivate(subPage);
+				//setTimeout(subModule._onActivate.bind(subModule));
 			}
 		},
 
@@ -243,7 +246,7 @@ define(['./mixins/events'], function (eventMixin) {
 		},
 
 		off: function () {
-			this.$container.off('.module');
+			this.$container && this.$container.off('.module');
 		},
 
 		_attachEvents: function () {
@@ -261,9 +264,18 @@ define(['./mixins/events'], function (eventMixin) {
 
 		},
 
+		_updateActiveMarks: function () {
+			this.activeMark = App.utils.toScore(this.name) + '-mark';
+			for (var key in this.m) {
+				this.m[key] = this.activeMark + ' m-' + App.utils.toScore(key);
+				if (key == this.page) this.m[key] += ' ' + this.activeMarkValue;
+			}
+		},
+
 		_onRoute: function (routeEvent) {
 			var deep = this.getPageDeep();
-			var changeDeep = App.Router.getChangeDeep('!' + this.app.getPagePath(), this.app.router.hash);
+			var changeDeep = App.Router.getChangeDeep('!' + this.app.getRoutePath(), this.app.router.hash);
+			if (!changeDeep) return;
 			if (deep != changeDeep) return;
 			var newPage = routeEvent.data.router.getPage(changeDeep);
 			if (!this.page && !this.defaultPage) return;

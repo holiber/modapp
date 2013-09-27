@@ -2,19 +2,22 @@
  * jquery dialog wrap
  */
 
-define(['../../app'], function (App) {
+define([
+	'../../app',
+	'../../mixins/events'
+], function (App, EventsMixin) {
 
 	var DEFAULT_MAX = 3;
 	var DEFAULT_TIME = 5000;
 	var DEFAULT_ANIMATION_SPEED = 300;
 
-	var DEFAUT_LAYOUT_TPL = function (notifier) {
+	var DEFAULT_LAYOUT_TPL = function (notifier) {
 		return '<div class="notifier">' +
 				'<div class="notifier-track">' +
 					(function () {
 						var result = '';
 						for (var i = 0; i < notifier.items.length; i++) {
-							result += notifier.tpl.item({item: notifier.items[i], notifier: notifier});
+							result += notifier.itemTpl({item: notifier.items[i], notifier: notifier});
 						}
 						return result;
 					})() +
@@ -31,13 +34,14 @@ define(['../../app'], function (App) {
 		'</div>';
 	}
 
-	var Notifier = Class.extend({
+	var Notifier = App.Module.extend([EventsMixin], {
 
 		/**
 		 * @param {Function} [tpl]
 		 * @param {Number} max
 		 */
 		init: function (tpl, max) {
+			this._super();
 			//swap args
 			if (arguments.length = 1) {
 				max = tpl;
@@ -45,7 +49,9 @@ define(['../../app'], function (App) {
 			}
 
 			tpl = tpl || {};
-			this.tpl = {layout: tpl.layout || DEFAUT_LAYOUT_TPL, item: tpl.item || DEFAULT_ITEM_TPL};
+			this.name = 'notifier';
+			this.tpl = tpl.layout|| DEFAULT_LAYOUT_TPL;
+			this.itemTpl = tpl.item || DEFAULT_ITEM_TPL; //{layout: tpl.layout || DEFAUT_LAYOUT_TPL, item: tpl.item || DEFAULT_ITEM_TPL};
 			this.$el = null;
 			this.$container = null;
 			this.max = max || DEFAULT_MAX;
@@ -71,22 +77,27 @@ define(['../../app'], function (App) {
 					text = type;
 					type = undefined;
 				break;
+				case 3:
+					type = type || 'info';
+					text = text || '';
+					options: options || {};
+				break;
 			}
 			var notification = $.extend({}, {id: ++this.lastId, type: 'info', text: 'empty notification', time: DEFAULT_TIME}, {text: text, type: type}, options);
 			notification.timeoutId = setTimeout(this._onNotifyTimeout.bind(this, notification), notification.time);
 			if (this.max <= this.items.length) this.close(this.items[0].id);
 			this.items.push(notification);
-			var $notification = $(this.tpl.item({item: notification, notifier: this}));
+			var $notification = $(this.itemTpl({item: notification, notifier: this}));
 			this.$el.find('.notifier-track').append($notification);
 			$notification.css({opacity: 0}).animate({opacity: 1});
 		},
-
-		render: function ($container) {
-			if ($container) this.$container = $container;
-			this.$el = $(this.tpl.layout(this));
-			this.$container.html(this.$el);
-			this._attachEvents();
-		},
+//
+//		render: function ($container) {
+//			if ($container) this.$container = $container;
+//			this.$el = $(this.tpl.layout(this));
+//			this.$container.html(this.$el);
+//			this._attachEvents();
+//		},
 
 		close: function (id) {
 			var index = -1;
@@ -118,6 +129,15 @@ define(['../../app'], function (App) {
 
 		_onNotifyTimeout: function (notification) {
 			this.close(notification.id);
+		},
+
+		_on: function (event) {
+			if (event.name == 'notifier') {
+				var params = event.data;
+				if (!params) return;
+				if (typeof params == 'string') params = {text: params};
+				this.push(params.type, params.text, params.options);
+			}
 		}
 
 	});

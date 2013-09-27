@@ -4,9 +4,20 @@ define(['./mixins/events'], function (eventMixin) {
 
 		init: function (defaultPage) {
 			this.defaultPage = defaultPage;
-			this.hash = window.location.hash;
+			this.hash = window.location.hash.substr(1);
+			this.route = null;
+			this.paramsStr = null;
+			this.params = null;
+			this.referrer = null;
+
+			var arHash = this.hash.split('?');
+			this.route = arHash[0];
+			this.paramsStr = arHash[1];
+			if (this.paramsStr) {
+				this.params = this.parseParams(this.paramsStr);
+			}
 			$(window).hashChange();
-			$(window).on('hashchange', $.proxy(this.route, this));
+			$(window).on('hashchange', $.proxy(this._onRoute, this));
 		},
 
 		/**
@@ -18,6 +29,7 @@ define(['./mixins/events'], function (eventMixin) {
 		getPage: function (deep) {
 			var level = deep || 1;
 			var hash = window.location.hash.split('!')[1];
+			if (hash) hash = hash.split('?')[0];
 			var page = null;
 			if (hash) {
 				page = hash.split('/')[level - 1];
@@ -29,19 +41,43 @@ define(['./mixins/events'], function (eventMixin) {
 			return page;
 		},
 
-		route: function (page) {
+		_onRoute: function (page) {
 			var oldHash = this.hash;
-			var hash = window.location.hash;
-			if (hash == '#..') {
+			var hash = window.location.hash.substr(1);
+			var onlyParams = false;
+			if (hash.charAt(0) == '?') onlyParams = true;
+			var paramsStr = null;
+			var arHash = hash.split('?');
+			var route = arHash[0];
+			paramsStr = arHash[1];
+
+			if (onlyParams) {
+				var newHash = oldHash.split('?')[0];
+				if (paramsStr) newHash += '?' + paramsStr;
+				window.location.hash = newHash;
+				return;
+			}
+
+			if (route == '..') {
 				var hashItems = oldHash.split('/');
 				if (hashItems[hashItems.length] == '/') hashItems.splice(hashItems.length - 1, 1);
 				hashItems && hashItems.splice(hashItems.length - 1, 1);
 				hash = hashItems.join('/');
+				if (paramsStr) hash += '?' + paramsStr;
 				window.location.hash = hash;
 				return;
 			}
 
 			this.hash = hash;
+			this.route = route;
+			this.paramsStr = paramsStr;
+			this.referrer = oldHash;
+
+			if (paramsStr) {
+				this.params = this.parseParams(this.paramsStr);
+			} else {
+				this.params = null;
+			}
 
 			if (page && typeof(page) == 'string') {
 				this.emit('route', page);
@@ -58,6 +94,17 @@ define(['./mixins/events'], function (eventMixin) {
 		getDeep: function () {
 			if (!this.hash.split('!')[1]) return 0;
 			return this.hash.split('/').length;
+		},
+
+		parseParams: function (paramsStr) {
+			var params = {};
+			var pairs = paramsStr.split('&');
+			for (var i = 0; i < pairs.length; i++) {
+				var pair = pairs[i];
+				pair = pair.split('=');
+				params[pair[0]] = pair[1] || null
+			}
+			return params
 		}
 
 	}, {
@@ -66,13 +113,25 @@ define(['./mixins/events'], function (eventMixin) {
 			hash1 = hash1.split('!')[1];
 			hash2 = hash2.split('!')[1];
 			if (!hash1 || !hash2) return 1;
+			hash1 = hash1.split('?')[0];
+			hash2 = hash2.split('?')[0];
+			if (!hash1 || !hash2) return 1;
 			hash1 = hash1.split('/');
 			hash2 = hash2.split('/');
 			var maxDeep = Math.max(hash1.length, hash2.length);
 			for (var i = 0; i < maxDeep; i++) {
 				if (hash1[i] != hash2[i]) return i + 1;
 			}
+			if (hash1.length > 0 && hash1.length == hash2.length) return 0;
 			return 1;
+		},
+
+		makeParamsStr: function (params) {
+			var result = '';
+			for (var paramName in params) {
+				result += '&' + paramName + '=' + params[paramName];
+			}
+			return result.substr(1);
 		}
 	});
 

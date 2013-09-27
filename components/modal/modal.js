@@ -15,6 +15,7 @@ define(['../../app'], function (App) {
 			this.options = $.extend({}, DEFAULT_OPTIONS, options);
 			this._super();
 			this.data = null;
+			this.isOpen = false;
 		},
 
 		render: function () {
@@ -24,9 +25,9 @@ define(['../../app'], function (App) {
 				this.$container = this.$el;
 			} else {
 				this.$container.html(this.$el.find('> *'));
+				this.$el = this.$container;
 			}
-			this.off();
-			this._attachEvents();
+			this.placeModules();
 			return true;
 		},
 
@@ -35,13 +36,17 @@ define(['../../app'], function (App) {
 			if ((this.loadState == 'none' || this.loadState == 'error') && this.autoLoad && this.load) this.load();
 			this.render();
 			this.$container.modal('show');
+			this.off();
+			this._attachEvents();
 			this.$container.off('.bs.modal');
 			this.$container.on('hide.bs.modal', this._onHide.bind(this));
 			this.$container.on('hidden.bs.modal', this._onHidden.bind(this));
+			this.isOpen = true;
 		},
 
 		hide: function () {
 			this.$container.modal('hide');
+			this.isOpen = false;
 		},
 
 		getPageDeep: function () {
@@ -50,8 +55,18 @@ define(['../../app'], function (App) {
 			return result;
 		},
 
-		_onActivate: function () {
+		showCondition : function () {
+
+		},
+
+		_onActivate: function (subPage) {
+			this.setPage(subPage);
+			this.activeFlag = true;
 			this.show();
+		},
+
+		_onAppReady: function () {
+			if (this.showCondition()) this._onActivate();
 		},
 
 		_onHide: function () {
@@ -61,8 +76,21 @@ define(['../../app'], function (App) {
 		},
 
 		_onRoute: function (routeEvent) {
+
+			var conditionResult = this.showCondition();
+			if (conditionResult !== undefined) {
+				if (conditionResult) {
+					this._onActivate();
+				} else if (this.isOpen) {
+					this.hide();
+				}
+				return;
+			}
+
+			if (!this.isOpen) return;
+
 			var deep = this.getPageDeep();
-			var changeDeep = App.Router.getChangeDeep('!' + this.app.getPagePath(), this.app.router.hash);
+			var changeDeep = App.Router.getChangeDeep('!' + this.app.getRoutePath(), this.app.router.hash);
 			if (deep > changeDeep && this.parent) {
 				if (!this.parent.isActive()) {
 					this.hide()
@@ -70,12 +98,20 @@ define(['../../app'], function (App) {
 					if (this.parent.page != this.name) this.hide();
 				}
 			}
+			if (!changeDeep) return;
 			if (deep != changeDeep) return;
 			var newPage = routeEvent.data.router.getPage(changeDeep);
 			if (!this.page && !this.defaultPage) return;
 
 			this.switchPage(newPage || this.defaultPage);
 		},
+
+		_on: function (event) {
+			this._super(event);
+			if (event.name == 'app/ready') {
+				this._onAppReady();
+			}
+		}
 
 	});
 
