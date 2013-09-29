@@ -14,7 +14,7 @@ function (utils, Module, Router, Protocol, ActiveData) {
 		init: function (defaultPage) {
 			this._super();
 			this.app = this;
-			this.pageDepend = true;
+			this.routeDepend = true;
 			this.activeFlag = true;
 			this.router = new App.Router(defaultPage);
 			this.add('router', this.router);

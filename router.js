@@ -27,21 +27,13 @@ define(['./mixins/events'], function (eventMixin) {
 		 */
 
 		getPage: function (deep) {
-			var level = deep || 1;
-			var hash = window.location.hash.split('!')[1];
-			if (hash) hash = hash.split('?')[0];
-			var page = null;
-			if (hash) {
-				page = hash.split('/')[level - 1];
-			} else if (deep > 1) {
-				page = false;
-			} else {
-				page = this.defaultPage;
-			}
-			return page;
+			var page = App.Router.getPage(deep);
+			return (page !== null && page !== '') ? page : this.defaultPage;
 		},
 
 		_onRoute: function (page) {
+
+			//get current state
 			var oldHash = this.hash;
 			var hash = window.location.hash.substr(1);
 			var onlyParams = false;
@@ -51,14 +43,16 @@ define(['./mixins/events'], function (eventMixin) {
 			var route = arHash[0];
 			paramsStr = arHash[1];
 
-			if (onlyParams) {
+			//if we change only params
+			if (onlyParams && oldHash) {
 				var newHash = oldHash.split('?')[0];
 				if (paramsStr) newHash += '?' + paramsStr;
 				window.location.hash = newHash;
 				return;
 			}
 
-			if (route == '..') {
+			//if we move up
+			if (route == '..' && oldHash) {
 				var hashItems = oldHash.split('/');
 				if (hashItems[hashItems.length] == '/') hashItems.splice(hashItems.length - 1, 1);
 				hashItems && hashItems.splice(hashItems.length - 1, 1);
@@ -68,6 +62,7 @@ define(['./mixins/events'], function (eventMixin) {
 				return;
 			}
 
+			//set properties
 			this.hash = hash;
 			this.route = route;
 			this.paramsStr = paramsStr;
@@ -84,11 +79,11 @@ define(['./mixins/events'], function (eventMixin) {
 				return;
 			}
 
-
+			//emit route event
 			var changeDeep = Router.getChangeDeep(this.hash, oldHash);
 			page = this.getPage(changeDeep);
 			var eventData = {router: this, old: oldHash};
-			this.emit('route', eventData, 'global');
+			this.emit('route', eventData);
 		},
 
 		getDeep: function () {
@@ -132,6 +127,21 @@ define(['./mixins/events'], function (eventMixin) {
 				result += '&' + paramName + '=' + params[paramName];
 			}
 			return result.substr(1);
+		},
+
+		getPage: function (deep) {
+			var level = deep || 1;
+			var hash = window.location.hash.split('!')[1];
+			if (hash) hash = hash.split('?')[0];
+			var page = null;
+			if (hash) {
+				page = hash.split('/')[level - 1];
+			} else if (deep > 1) {
+				page = false;
+			} else {
+				page = '';
+			}
+			return page;
 		}
 	});
 

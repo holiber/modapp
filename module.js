@@ -21,7 +21,7 @@ define(['./mixins/events'], function (eventMixin) {
 			this.pageRoute = null;
 			this.helper = {};
 			this.deep = 1;
-			this.pageDepend = false;
+			this.routeDepend = false;
 			this.autoLoad = true;
 			this.autoPlace = true;
 			this.m = {};//activemarks
@@ -83,15 +83,18 @@ define(['./mixins/events'], function (eventMixin) {
 
 			if (!this.isActive()) return false;
 
+			//render part of template
 			if (typeof($container) == 'string') {
 				var $part = $(this.tpl(this)).find('.' + $container);
 				this.$el.find('.' + $container).replaceWith($part);
 				return true;
 			}
 
+			//stop render if another module placed in this container
 			if (this.pageDepend && !$container) {
 				var $el = this.$container.find(':first');
-				if (!$el.hasClass(this.name)) return false;
+				var subModuleClass = App.utils.toScore(this.name) + '-module';
+				if (!$el.hasClass(subModuleClass)) return false;
 			}
 
 			if ($container) this.$container = $container;
@@ -180,9 +183,11 @@ define(['./mixins/events'], function (eventMixin) {
 
 		setPage: function (page) {
 			page = page || this.defaultPage;
+			if (this.defaultPage) this.routeDepend = true;
 			var route = page;
 			if (!this.get(page)) {
 				route = page;
+				if (!route) route = this.getRouteByHash();
 				page = this.getPageByRoute(route) || page;
 			}
 
@@ -195,7 +200,6 @@ define(['./mixins/events'], function (eventMixin) {
 				subModule.setRoute(route);
 				var subPage = this.app.router.getPage(this.getPageDeep() + 1);
 				subModule._onActivate(subPage);
-				//setTimeout(subModule._onActivate.bind(subModule));
 			}
 		},
 
@@ -210,7 +214,7 @@ define(['./mixins/events'], function (eventMixin) {
 
 		getPageDeep: function () {
 			var result = Number(!!this.page);
-			if (this.defaultPage) result = 1;
+			if (this.routeDepend) result = 1;
 			if (this.parent) result += this.parent.getPageDeep();
 			return result;
 		},
@@ -220,6 +224,7 @@ define(['./mixins/events'], function (eventMixin) {
 		},
 
 		getPageByRoute: function (page) {
+			if (!page) return;
 			var moduleName = null;
 			for (var childName in this.children) {
 				var child = this.children[childName];
@@ -237,6 +242,12 @@ define(['./mixins/events'], function (eventMixin) {
 				break;
 			}
 			return moduleName;
+		},
+
+		getRouteByHash: function () {
+			var deep = this.getPageDeep();
+			var route = App.Router.getPage(deep);
+			return route;
 		},
 
 		on: function (type, selector, fn) {
@@ -278,7 +289,7 @@ define(['./mixins/events'], function (eventMixin) {
 			if (!changeDeep) return;
 			if (deep != changeDeep) return;
 			var newPage = routeEvent.data.router.getPage(changeDeep);
-			if (!this.page && !this.defaultPage) return;
+			if (!this.page && !this.routeDepend) return;
 
 			this.switchPage(newPage || this.defaultPage);
 		},
