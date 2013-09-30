@@ -35,6 +35,9 @@ define(['./mixins/events'], function (eventMixin) {
 
 			//get current state
 			var oldHash = this.hash;
+			var oldHashRoute = oldHash.split('!');
+			oldHashRoute = oldHashRoute[1] || oldHashRoute[0];
+			oldHashRoute = oldHashRoute.split('?')[0];
 			var hash = window.location.hash.substr(1);
 			var onlyParams = false;
 			if (hash.charAt(0) == '?') onlyParams = true;
@@ -44,7 +47,7 @@ define(['./mixins/events'], function (eventMixin) {
 			paramsStr = arHash[1];
 
 			//if we change only params
-			if (onlyParams && oldHash) {
+			if (onlyParams && oldHash && oldHashRoute) {
 				var newHash = oldHash.split('?')[0];
 				if (paramsStr) newHash += '?' + paramsStr;
 				window.location.hash = newHash;
