@@ -1,6 +1,6 @@
 ![logo](https://raw.github.com/holiber/modapp/master/logo.png)
 
-Easy way for building modular RIA applications.
+Easy way for building single-page js applications.
 ##Installation
 Use [bower](http://bower.io/) package manager for quick instalation with:
 
