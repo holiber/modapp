@@ -11,18 +11,37 @@ define(['./mixins/events'], function (eventMixin) {
 		contentType: 'application/json'
 	};
 
+	var DEFAULT_SOCKET_OPTIONS = {
+		host: 'http://localhost'
+	}
+
 	var Protocol = Class.extend([eventMixin], {
 
 		init: function (options) {
-			this.params = $.extend({}, DEFAULT_OPTIONS, options);
-			this.transport = this.params.transport;
+			this.options = $.extend({}, DEFAULT_OPTIONS, options);
+			this.transport = this.options.transport;
+			this.io = null;
+			this.socket = null;
+			if (this.transport == 'sockets') this.initSockets();
+		},
+
+		initSockets: function () {
+			if (!io) throw ('socket.io library not found');
+			this.options = $.extend({}, DEFAULT_SOCKET_OPTIONS, this.options);
+			this.io = io;
+		},
+
+		connect: function () {
+			if (this.transport != 'sockets') return;
+			this.socket = this.io.connect(this.options.host);
+			this.socket.on('message', this._onSocketMessage.bind(this));
 		},
 
 		request: function (params, callback, userData) {
 
-			//TODO: create other transports such as "polling", "long polling", "web sockets" or think about using "Socket IO"
-			if (this.transport == 'xhr') {
-				this.xhrRequest(params, callback, userData);
+			switch (this.transport) {
+				case 'xhr': this.xhrRequest(params, callback, userData);break;
+				case 'sockets': this.socketRequest(params, callback, userData);break;
 			}
 		},
 
@@ -66,6 +85,15 @@ define(['./mixins/events'], function (eventMixin) {
 				var eventData = {name: params.onRequest, request: params, userData: userData}
 				this.emit('client/request', eventData);
 			}
+		},
+
+		socketRequest: function (params) {
+			var eventName = params.event || params.url;
+			this.socket.emit(eventName, params.data);
+		},
+
+		_onSocketMessage: function (message) {
+			this.emit('server/message', message);
 		}
 
 	});

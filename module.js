@@ -250,6 +250,10 @@ define(['./mixins/events'], function (eventMixin) {
 			return route;
 		},
 
+		$: function (selector) {
+			return this.$container.find(selector);
+		},
+
 		on: function (type, selector, fn) {
 			var args = Array.prototype.slice.call(arguments, 0);
 			args[0] += '.module';
@@ -297,7 +301,12 @@ define(['./mixins/events'], function (eventMixin) {
 		_on: function (event) {
 			switch (event.name) {
 				case 'route': this._onRoute(event);break;
+				case 'server/message': this._onServerMessage(event.data);break
 			}
+		},
+
+		_onServerMessage: function (event) {
+
 		}
 	});
 
