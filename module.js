@@ -251,7 +251,7 @@ define(['./mixins/events'], function (eventMixin) {
 		},
 
 		$: function (selector) {
-			return this.$container.find(selector);
+			return this.$container ? this.$container.find(selector) : jQuery();
 		},
 
 		on: function (type, selector, fn) {

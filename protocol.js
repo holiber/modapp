@@ -35,6 +35,8 @@ define(['./mixins/events'], function (eventMixin) {
 			if (this.transport != 'sockets') return;
 			this.socket = this.io.connect(this.options.host);
 			this.socket.on('message', this._onSocketMessage.bind(this));
+			this.socket.on('connect', this.emit('server/connect'));
+			//this.socket.on('disconnect', this.emit('server/disconnect'));
 		},
 
 		request: function (params, callback, userData) {
